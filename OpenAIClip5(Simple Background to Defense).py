@@ -24,28 +24,34 @@ def is_simple_background(image_path):
         edge_ratio = np.sum(edges > 0) / (128 * 128)
 
         # 🔥 Heuristic thresholds (tune if needed)
-        if variance < 2000 and edge_ratio < 0.15:
-            return True  # likely simple background (DEFENSE)
+        if variance < 1500 and edge_ratio < 0.12:
+            simple_bg = True    
+        elif variance > 3000 or edge_ratio > 0.20:
+            simple_bg = False
         else:
-            return False  # likely scene (CHARACTER)
-
+            simple_bg = None  # uncertain
     except:
         return False
 
-defense_dir = os.path.join(BASE_DIR, "Defense")
 character_dir = os.path.join(BASE_DIR, "Characters")
+defense_dir = os.path.join(BASE_DIR, "Defense")
 
-for file in os.listdir(defense_dir):
-    path = os.path.join(defense_dir, file)
+os.makedirs(defense_dir, exist_ok=True)
+
+for file in os.listdir(character_dir):
+    path = os.path.join(character_dir, file)
 
     if not os.path.isfile(path):
         continue
 
     simple_bg = is_simple_background(path)
+ 
+    if simple_bg is True:
+        # 🔥 Move BACK to Defense
+        shutil.move(path, os.path.join(defense_dir, file))
+        print(f"Moved BACK to Defense: {file}")
 
-    if not simple_bg:
-        # Complex scene → move to Characters
-        shutil.move(path, os.path.join(character_dir, file))
-        print(f"Moved to Characters (scene): {file}")
+    elif simple_bg is None:
+        print(f"Uncertain (left in Characters): {file}")
 
 print("\n✅ Background-based cleanup complete.")
