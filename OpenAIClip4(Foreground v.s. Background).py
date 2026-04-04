@@ -3,7 +3,7 @@ import shutil
 import cv2
 import numpy as np
 
-BASE_DIR = r"C:\Users\YourName\Desktop\Blast_Attack\Assets"
+BASE_DIR = r"C:/Users/dierk/OneDrive/Blast_Attack"
 
 def is_simple_background(image_path):
     try:
