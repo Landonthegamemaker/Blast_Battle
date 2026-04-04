@@ -1,57 +1,64 @@
 import os
-import shutil
 import cv2
 import numpy as np
+import shutil
 
-BASE_DIR = r"C:/Users/dierk/OneDrive/Blast_Attack"
+# === CONFIG ===
+BASE_DIR = r"C:\Users\dierk\Downloads\Blast Battle"
+CHARACTER_DIR = os.path.join(BASE_DIR, "Characters")
+DEFENSE_DIR = os.path.join(BASE_DIR, "Defense")
 
-def is_simple_background(image_path):
-    try:
-        img = cv2.imread(image_path)
-        img = cv2.resize(img, (128, 128))  # normalize size
+# Create Defense folder if it doesn't exist
+os.makedirs(DEFENSE_DIR, exist_ok=True)
 
-        # Convert to HSV for better color analysis
-        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+# === THRESHOLDS (TUNE THESE IF NEEDED) ===
+LOW_EDGE = 0.07
+CENTER_EDGE_THRESHOLD = 0.11
 
-        # Flatten pixels
-        pixels = hsv.reshape(-1, 3)
+# === PROCESS ===
+for file in os.listdir(CHARACTER_DIR):
+    file_lower = file.lower()
 
-        # Measure color variance
-        variance = np.var(pixels, axis=0).mean()
-
-        # Measure edge density
-        edges = cv2.Canny(img, 100, 200)
-        edge_ratio = np.sum(edges > 0) / (128 * 128)
-
-        # 🔥 Heuristic thresholds (tune if needed)
-        if variance < 1500 and edge_ratio < 0.12:
-            simple_bg = True    
-        elif variance > 3000 or edge_ratio > 0.20:
-            simple_bg = False
-        else:
-            simple_bg = None  # uncertain
-    except:
-        return False
-
-character_dir = os.path.join(BASE_DIR, "Characters")
-defense_dir = os.path.join(BASE_DIR, "Defense")
-
-os.makedirs(defense_dir, exist_ok=True)
-
-for file in os.listdir(character_dir):
-    path = os.path.join(character_dir, file)
-
-    if not os.path.isfile(path):
+    # Only process images
+    if not file_lower.endswith((".png", ".jpg", ".jpeg")):
         continue
 
-    simple_bg = is_simple_background(path)
- 
-    if simple_bg is True:
-        # 🔥 Move BACK to Defense
-        shutil.move(path, os.path.join(defense_dir, file))
-        print(f"Moved BACK to Defense: {file}")
+    path = os.path.join(CHARACTER_DIR, file)
 
-    elif simple_bg is None:
-        print(f"Uncertain (left in Characters): {file}")
+    # Read image
+    img = cv2.imread(path)
+    if img is None:
+        continue
 
-print("\n✅ Background-based cleanup complete.")
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    # === METRIC 1: Variance ===
+    variance = np.var(gray)
+
+    # === METRIC 2: Edge Ratio ===
+    edges = cv2.Canny(gray, 100, 200)
+    edge_ratio = np.mean(edges > 0)
+
+    # === METRIC 3: Center Edge Density ===
+    h, w = edges.shape
+    center = edges[h//4:3*h//4, w//4:3*w//4]
+    center_edge_ratio = np.mean(center > 0)
+
+    # === DEBUG OUTPUT ===
+    print(f"{file} → var={variance:.0f}, edges={edge_ratio:.3f}, center={center_edge_ratio:.3f}")
+
+    # === CLASSIFICATION LOGIC ===
+    if edge_ratio < LOW_EDGE and center_edge_ratio < CENTER_EDGE_THRESHOLD:
+        label = "Defense"
+    else:
+        label = "Character/Uncertain"
+
+    # === ACTION ===
+    if label == "Defense":
+        new_path = os.path.join(DEFENSE_DIR, file)
+        shutil.move(path, new_path)
+        print(f"✅ Moved to Defense: {file}")
+    else:
+        print(f"➡️ Kept in Characters: {file}")
+
+print("\n🎯 Iteration 5 complete.")
