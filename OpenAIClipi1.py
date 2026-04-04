@@ -6,7 +6,7 @@ from PIL import Image
 
 # ===== PATHS =====
 # Path to your messy folder
-SOURCE_DIR = "C:/Users/dierk/Blast_Battle"
+SOURCE_DIR = "C:/Users/dierk/OneDrive/Blast_Attack/Unsorted"
 # Destination base folder
 DEST_DIR = "C:/Users/dierk/OneDrive/Blast_Attack"
 
@@ -51,7 +51,6 @@ def classify_image(image_path):
 # ===== MAIN LOOP =====
 for filename in os.listdir(SOURCE_DIR):
     file_path = os.path.join(SOURCE_DIR, filename)
-
     if not os.path.isfile(file_path):
         continue
 
