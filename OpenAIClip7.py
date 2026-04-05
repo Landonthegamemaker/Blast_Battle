@@ -10,9 +10,11 @@ DEFENSE_DIR = os.path.join(BASE_DIR, "Defense")
 
 # Create Character folder if it doesn't exist
 os.makedirs(CHARACTER_DIR, exist_ok=True)
+# Create Defense folder if it doesn't exist
+os.makedirs(DEFENSE_DIR, exist_ok=True)
 
 # === THRESHOLDS (TUNE THESE IF NEEDED) ===
-LOW_EDGE = 0.08
+LOW_EDGE = 0.09
 CENTER_EDGE_THRESHOLD = 0.12
 
 # === PROCESS ===
@@ -51,7 +53,7 @@ for file in os.listdir(CHARACTER_DIR):
     if edge_ratio < LOW_EDGE and center_edge_ratio < CENTER_EDGE_THRESHOLD:
         label = "Defense"
     else:
-        label = "Character/Uncertain"
+        label = "Character"
 
     # === ACTION ===
     if label == "Defense":
@@ -59,6 +61,6 @@ for file in os.listdir(CHARACTER_DIR):
         shutil.move(path, new_path)
         print(f"✅ Moved to Defense: {file}")
     else:
-        print(f"➡️ Kept in Characters: {file}")
+        print(f"➡️ Kept in Character: {file}")
 
-print("\n🎯 Iteration 8 complete.")
+print("\n🎯 Iteration 10 complete.")
