@@ -5,11 +5,11 @@ import shutil
 
 # === CONFIG ===
 BASE_DIR = r"C:/Users/dierk/OneDrive/Blast_Attack"
-CHARACTER_DIR = os.path.join(BASE_DIR, "Characters")
 DEFENSE_DIR = os.path.join(BASE_DIR, "Defense")
+CHARACTER_DIR = os.path.join(BASE_DIR, "Characters")
 
-# Create Defense folder if it doesn't exist
-os.makedirs(DEFENSE_DIR, exist_ok=True)
+# Create Character folder if it doesn't exist
+os.makedirs(CHARACTER_DIR, exist_ok=True)
 
 # === THRESHOLDS (TUNE THESE IF NEEDED) ===
 LOW_EDGE = 0.06
@@ -61,4 +61,4 @@ for file in os.listdir(DEFENSE_DIR):
     else:
         print(f"➡️ Kept in Defense: {file}")
 
-print("\n🎯 Iteration 5 complete.")
+print("\n🎯 Iteration 7 complete.")
