@@ -13,8 +13,8 @@ os.makedirs(DEF_DIR, exist_ok=True)
 
 # === THRESHOLDS ===
 # Strict = cleaner Defense
-LOW_EDGE = 0.065
-CENTER_EDGE_THRESHOLD = 0.11
+LOW_EDGE = 0.045
+CENTER_EDGE_THRESHOLD = 0.07
 
 # === STORE MOVES (no conflicts) ===
 moves = []
@@ -38,7 +38,7 @@ def classify_image(path):
     print(f"{os.path.basename(path)} → var={variance:.0f}, edges={edge_ratio:.3f}, center={center_edge_ratio:.3f}")
 
     # === CLASSIFICATION ===
-    if edge_ratio < LOW_EDGE and center_edge_ratio < CENTER_EDGE_THRESHOLD:
+    if edge_ratio <= LOW_EDGE and center_edge_ratio <= CENTER_EDGE_THRESHOLD:
         return "Defense"
     else:
         return "Character"
