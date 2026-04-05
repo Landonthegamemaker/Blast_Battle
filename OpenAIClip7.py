@@ -50,10 +50,10 @@ for file in os.listdir(CHARACTER_DIR):
     print(f"{file} → var={variance:.0f}, edges={edge_ratio:.3f}, center={center_edge_ratio:.3f}")
 
     # === CLASSIFICATION LOGIC ===
-    if edge_ratio < LOW_EDGE and center_edge_ratio < CENTER_EDGE_THRESHOLD:
-        label = "Defense"
-    else:
+    if edge_ratio >= 0.07 or center_edge_ratio >= 0.07:
         label = "Character"
+    else:
+        label = "Defense"
 
     # === ACTION ===
     if label == "Defense":
