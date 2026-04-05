@@ -5,25 +5,25 @@ import shutil
 
 # === CONFIG ===
 BASE_DIR = r"C:/Users/dierk/OneDrive/Blast_Attack"
-DEFENSE_DIR = os.path.join(BASE_DIR, "Defense")
 CHARACTER_DIR = os.path.join(BASE_DIR, "Characters")
+DEFENSE_DIR = os.path.join(BASE_DIR, "Defense")
 
 # Create Character folder if it doesn't exist
 os.makedirs(CHARACTER_DIR, exist_ok=True)
 
 # === THRESHOLDS (TUNE THESE IF NEEDED) ===
-LOW_EDGE = 0.06
-CENTER_EDGE_THRESHOLD = 0.10
+LOW_EDGE = 0.08
+CENTER_EDGE_THRESHOLD = 0.12
 
 # === PROCESS ===
-for file in os.listdir(DEFENSE_DIR):
+for file in os.listdir(CHARACTER_DIR):
     file_lower = file.lower()
 
     # Only process images
     if not file_lower.endswith((".png", ".jpg", ".jpeg")):
         continue
 
-    path = os.path.join(DEFENSE_DIR, file)
+    path = os.path.join(CHARACTER_DIR, file)
 
     # Read image
     img = cv2.imread(path)
@@ -55,10 +55,10 @@ for file in os.listdir(DEFENSE_DIR):
 
     # === ACTION ===
     if label == "Defense":
-        new_path = os.path.join(CHARACTER_DIR, file)
+        new_path = os.path.join(DEFENSE_DIR, file)
         shutil.move(path, new_path)
-        print(f"✅ Moved to Characters: {file}")
+        print(f"✅ Moved to Defense: {file}")
     else:
-        print(f"➡️ Kept in Defense: {file}")
+        print(f"➡️ Kept in Characters: {file}")
 
-print("\n🎯 Iteration 7 complete.")
+print("\n🎯 Iteration 8 complete.")
