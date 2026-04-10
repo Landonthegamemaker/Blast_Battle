@@ -1,0 +1,1529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BLAST BATTLES</title>
+<link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c0f;
+    --surface: #111418;
+    --surface2: #1a1f26;
+    --border: #2a3040;
+    --accent: #e8b84b;
+    --accent2: #ff4444;
+    --hero: #4ab8ff;
+    --villain: #c44bff;
+    --green: #44ff88;
+    --text: #e8eaf0;
+    --muted: #6b7585;
+    --fast: #44ff88;
+    --medium: #e8b84b;
+    --slow: #ff8844;
+    --charged: #ff4444;
+    --card-w: 110px;
+    --card-h: 155px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 500;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: radial-gradient(ellipse at 20% 20%, rgba(232,184,75,0.04) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 80%, rgba(74,184,255,0.04) 0%, transparent 60%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ===== LAYOUT ===== */
+  #app { position: relative; z-index: 1; display: flex; flex-direction: column; min-height: 100vh; }
+  
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,12,15,0.9);
+    backdrop-filter: blur(10px);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo {
+    font-family: 'Black Ops One', cursive;
+    font-size: 1.6rem;
+    color: var(--accent);
+    text-shadow: 0 0 20px rgba(232,184,75,0.5);
+    letter-spacing: 2px;
+  }
+  .logo span { color: var(--accent2); }
+  .turn-info {
+    display: flex; align-items: center; gap: 16px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem;
+  }
+  .turn-badge {
+    background: var(--surface2); border: 1px solid var(--border);
+    padding: 4px 12px; border-radius: 4px;
+  }
+  .phase-badge {
+    padding: 4px 14px; border-radius: 4px;
+    font-weight: 700; letter-spacing: 1px;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+  }
+  .phase-fast { background: rgba(68,255,136,0.15); color: var(--fast); border: 1px solid var(--fast); }
+  .phase-medium { background: rgba(232,184,75,0.15); color: var(--medium); border: 1px solid var(--medium); }
+  .phase-slow { background: rgba(255,136,68,0.15); color: var(--slow); border: 1px solid var(--slow); }
+  .phase-charged { background: rgba(255,68,68,0.15); color: var(--charged); border: 1px solid var(--charged); }
+  .phase-movement { background: rgba(74,184,255,0.15); color: var(--hero); border: 1px solid var(--hero); }
+  .phase-setup { background: rgba(107,117,133,0.15); color: var(--muted); border: 1px solid var(--muted); }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: 220px 1fr 220px;
+    gap: 0;
+    flex: 1;
+  }
+
+  /* ===== SIDE PANELS ===== */
+  .side-panel {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 12px;
+    display: flex; flex-direction: column; gap: 10px;
+    overflow-y: auto;
+  }
+  .side-panel.right { border-right: none; border-left: 1px solid var(--border); }
+  .panel-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ===== CHARACTER DISPLAY ===== */
+  .char-display {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px;
+  }
+  .char-name {
+    font-family: 'Black Ops One', cursive;
+    font-size: 0.9rem;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .char-type { font-size: 0.7rem; color: var(--muted); margin-bottom: 8px; }
+  .char-type.hero { color: var(--hero); }
+  .char-type.villain { color: var(--villain); }
+  .hp-bar-wrap { margin-bottom: 6px; }
+  .hp-label { font-size: 0.7rem; color: var(--muted); font-family: 'Share Tech Mono', monospace; margin-bottom: 2px; }
+  .hp-bar { height: 8px; background: var(--surface); border-radius: 4px; overflow: hidden; border: 1px solid var(--border); }
+  .hp-fill { height: 100%; background: linear-gradient(90deg, #ff4444, #e8b84b, #44ff88); transition: width 0.4s; border-radius: 4px; }
+  .char-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); padding: 3px 6px; border-radius: 3px; font-size: 0.7rem; }
+  .stat-label { color: var(--muted); font-size: 0.6rem; text-transform: uppercase; }
+  .char-attr { margin-top: 6px; font-size: 0.7rem; background: rgba(232,184,75,0.08); border: 1px solid rgba(232,184,75,0.2); padding: 4px 6px; border-radius: 3px; color: var(--accent); }
+
+  /* ===== CARDS ===== */
+  .card {
+    width: var(--card-w);
+    height: var(--card-h);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+    display: flex; flex-direction: column;
+    font-size: 0.65rem;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+  .card.selected { border-color: var(--accent); box-shadow: 0 0 12px rgba(232,184,75,0.4); transform: translateY(-6px); }
+  .card.played { border-color: var(--green); opacity: 0.7; cursor: default; }
+  .card.played:hover { transform: none; }
+  .card.hidden-card { background: repeating-linear-gradient(45deg, #111418, #111418 5px, #141820 5px, #141820 10px); cursor: default; }
+  .card.hidden-card:hover { transform: none; }
+  .card-header { padding: 5px 6px 3px; border-bottom: 1px solid var(--border); }
+  .card-name { font-family: 'Black Ops One', cursive; font-size: 0.62rem; line-height: 1.2; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-type-badge { font-size: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 1px; }
+  .weapon-badge { color: var(--accent2); }
+  .defense-badge { color: var(--hero); }
+  .character-badge { color: var(--accent); }
+  .card-body { padding: 4px 6px; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+  .card-stat { display: flex; justify-content: space-between; align-items: center; }
+  .card-stat-label { color: var(--muted); font-size: 0.55rem; text-transform: uppercase; }
+  .card-stat-value { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; font-weight: 700; }
+  .speed-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 2px; }
+  .speed-fast { background: var(--fast); }
+  .speed-medium { background: var(--medium); }
+  .speed-slow { background: var(--slow); }
+  .speed-charged { background: var(--charged); }
+  .card-footer { padding: 3px 6px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .ammo-pips { display: flex; gap: 2px; flex-wrap: wrap; }
+  .ammo-pip { width: 5px; height: 5px; border-radius: 1px; background: var(--accent); }
+  .ammo-pip.used { background: var(--border); }
+  .durability-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; flex: 1; }
+  .durability-fill { height: 100%; background: var(--hero); border-radius: 2px; transition: width 0.3s; }
+  .card-bg-icon { position: absolute; bottom: 4px; right: 4px; font-size: 1.4rem; opacity: 0.06; user-select: none; }
+  .card-hidden-inner { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 4px; color: var(--border); }
+  .card-hidden-inner .shield { font-size: 2rem; }
+  .card-hidden-inner span { font-size: 0.55rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+
+  /* Card color accents by type */
+  .card.weapon .card-header { border-bottom-color: rgba(255,68,68,0.3); background: rgba(255,68,68,0.04); }
+  .card.defense .card-header { border-bottom-color: rgba(74,184,255,0.3); background: rgba(74,184,255,0.04); }
+  .card.character .card-header { border-bottom-color: rgba(232,184,75,0.3); background: rgba(232,184,75,0.04); }
+
+  /* ===== HAND AREAS ===== */
+  .hand-area {
+    padding: 10px 12px 8px;
+    border-top: 1px solid var(--border);
+    background: rgba(10,12,15,0.6);
+  }
+  .hand-area.bot-hand {
+    border-top: none;
+    border-bottom: 1px solid var(--border);
+    background: rgba(196,75,255,0.03);
+  }
+  .hand-label { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; }
+  .hand-cards { display: flex; gap: 8px; flex-wrap: wrap; min-height: var(--card-h); align-items: flex-end; }
+
+  /* ===== IN-PLAY AREA ===== */
+  .in-play-area {
+    padding: 6px 12px;
+    background: rgba(26,31,38,0.5);
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+    flex-wrap: wrap;
+    min-height: 64px;
+  }
+  .in-play-label { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+  .in-play-card { width: 120px; height: 168px; font-size: 0.7rem; }
+
+  /* ===== ARENA ===== */
+  .arena-wrap {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+  }
+  .arena-center {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 0;
+  }
+  .arena-grid-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .arena-row { display: flex; gap: 6px; justify-content: center; }
+  .location-tile {
+    width: 88px;
+    height: 76px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 6px;
+    text-align: center;
+  }
+  .location-tile:hover { border-color: var(--accent); }
+  .location-tile.player-here { border-color: var(--hero); box-shadow: 0 0 12px rgba(74,184,255,0.3); background: rgba(74,184,255,0.08); }
+  .location-tile.bot-here { border-color: var(--villain); box-shadow: 0 0 12px rgba(196,75,255,0.3); background: rgba(196,75,255,0.08); }
+  .location-tile.both-here { border-color: var(--accent); box-shadow: 0 0 12px rgba(232,184,75,0.4); }
+  .location-tile.selectable { border-color: var(--green); animation: pulse-green 1s infinite; cursor: pointer; }
+  .location-tile.empty-slot { opacity: 0; pointer-events: none; }
+  @keyframes pulse-green { 0%,100%{box-shadow:0 0 6px rgba(68,255,136,0.3)} 50%{box-shadow:0 0 16px rgba(68,255,136,0.6)} }
+  .loc-name { font-family: 'Black Ops One', cursive; font-size: 0.55rem; line-height: 1.2; color: var(--text); }
+  .loc-effect { font-size: 0.5rem; color: var(--muted); margin-top: 2px; line-height: 1.2; }
+  .loc-effect.hero-zone { color: var(--hero); }
+  .loc-effect.villain-zone { color: var(--villain); }
+  .loc-effect.danger { color: var(--accent2); }
+  .loc-effect.buff { color: var(--green); }
+  .loc-effect.neutral { color: var(--muted); }
+  .loc-icons { position: absolute; top: 3px; left: 5px; right: 5px; display: flex; justify-content: space-between; align-items: center; }
+  .player-token { width: 12px; height: 12px; border-radius: 50%; }
+  .player-token.p { background: var(--hero); box-shadow: 0 0 6px var(--hero); }
+  .player-token.b { background: var(--villain); box-shadow: 0 0 6px var(--villain); }
+  .loc-dist { position: absolute; bottom: 2px; right: 4px; font-size: 0.45rem; color: var(--border); font-family: 'Share Tech Mono', monospace; }
+
+  /* ===== LOG ===== */
+  .log-area {
+    height: 120px;
+    overflow-y: auto;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 8px 12px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.68rem;
+  }
+  .log-entry { padding: 1px 0; line-height: 1.5; }
+  .log-player { color: var(--hero); }
+  .log-bot { color: var(--villain); }
+  .log-system { color: var(--muted); }
+  .log-damage { color: var(--accent2); }
+  .log-heal { color: var(--green); }
+  .log-phase { color: var(--accent); font-weight: bold; }
+  .log-loc { color: #b0c0d0; }
+
+  /* ===== CONTROLS ===== */
+  .controls-bar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .btn {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 0.8rem;
+    padding: 6px 16px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface2);
+    color: var(--text);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.15s;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn.primary { background: var(--accent); color: #000; border-color: var(--accent); }
+  .btn.primary:hover { background: #ffd06a; }
+  .btn.danger { border-color: var(--accent2); color: var(--accent2); }
+  .btn.danger:hover { background: rgba(255,68,68,0.1); }
+  .phase-skip { margin-left: auto; }
+  .action-hint { font-size: 0.7rem; color: var(--muted); font-style: italic; }
+
+  /* ===== MODAL ===== */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.8);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.hidden { display: none; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    max-width: 420px; width: 90%;
+    text-align: center;
+  }
+  .modal h2 { font-family: 'Black Ops One', cursive; font-size: 1.8rem; color: var(--accent); margin-bottom: 8px; }
+  .modal p { color: var(--muted); margin-bottom: 20px; font-size: 0.9rem; }
+  .modal-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  .modal-stat { background: var(--surface2); padding: 10px; border-radius: 6px; border: 1px solid var(--border); }
+  .modal-stat-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; }
+  .modal-stat-value { font-family: 'Share Tech Mono', monospace; font-size: 1.1rem; color: var(--text); }
+
+  /* ===== TOOLTIP ===== */
+  .tooltip-wrap { position: relative; }
+  .tooltip {
+    position: absolute; bottom: calc(100% + 8px); left: 50%;
+    transform: translateX(-50%);
+    background: #1a1f26; border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 10px;
+    width: 160px;
+    font-size: 0.65rem; line-height: 1.5;
+    z-index: 200;
+    pointer-events: none;
+    opacity: 0; transition: opacity 0.15s;
+    white-space: normal;
+  }
+  .tooltip-wrap:hover .tooltip { opacity: 1; }
+  .tooltip-title { font-family: 'Black Ops One', cursive; font-size: 0.75rem; color: var(--accent); margin-bottom: 4px; }
+
+  /* ===== SCROLLBAR ===== */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: var(--surface); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* ===== ANIMATIONS ===== */
+  @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes flash-red { 0%,100%{background:var(--surface2)} 30%,70%{background:rgba(255,68,68,0.25)} }
+  @keyframes flash-green { 0%,100%{background:var(--surface2)} 30%,70%{background:rgba(68,255,136,0.2)} }
+  .flash-damage { animation: flash-red 0.5s; }
+  .flash-heal { animation: flash-green 0.5s; }
+
+  .new-entry { animation: slideUp 0.2s ease; }
+
+  /* ===== RANGE INDICATOR ===== */
+  .range-tag { font-size: 0.5rem; background: rgba(255,68,68,0.12); color: var(--accent2); border: 1px solid rgba(255,68,68,0.3); padding: 1px 4px; border-radius: 2px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">BLAST <span>BATTLES</span></div>
+    <div class="turn-info">
+      <div class="turn-badge">TURN <span id="turn-num">1</span></div>
+      <div class="phase-badge phase-setup" id="phase-badge">SETUP</div>
+      <div id="whose-turn" style="color:var(--muted);font-size:0.75rem;"></div>
+    </div>
+    <button class="btn" onclick="showHelp()" style="font-size:0.7rem;padding:4px 10px;">? HELP</button>
+  </header>
+
+  <div class="main-grid">
+    <!-- LEFT PANEL: Player Info -->
+    <div class="side-panel" id="player-panel">
+      <div class="panel-title">▶ YOU</div>
+      <div class="char-display" id="player-char-display"></div>
+    </div>
+
+    <!-- CENTER: Arena + Hand -->
+    <div class="arena-wrap">
+      <!-- Bot hand (hidden) -->
+      <div class="hand-area bot-hand">
+        <div class="hand-label">⚔ BOT HAND — <span id="bot-card-count">0</span> cards hidden</div>
+        <div class="hand-cards" id="bot-hand-display"></div>
+      </div>
+      <!-- Bot in-play (visible) -->
+      <div class="in-play-area" id="bot-play-area">
+        <div class="in-play-label">BOT IN PLAY:</div>
+      </div>
+
+      <!-- Arena -->
+      <div class="arena-center">
+        <div class="arena-grid-wrap" id="arena-grid"></div>
+      </div>
+
+      <!-- Player in-play (visible) -->
+      <div class="in-play-area" id="player-play-area">
+        <div class="in-play-label">YOUR IN PLAY:</div>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls-bar" id="controls-bar">
+        <span class="action-hint" id="action-hint">Setting up game...</span>
+        <button class="btn primary phase-skip" id="btn-skip" onclick="skipPhase()" disabled>SKIP PHASE →</button>
+      </div>
+
+      <!-- Player hand -->
+      <div class="hand-area">
+        <div class="hand-label">YOUR HAND — <span id="player-card-count"></span> — click a card to select</div>
+        <div class="hand-cards" id="player-hand-display"></div>
+      </div>
+
+      <!-- Log -->
+      <div class="log-area" id="log"></div>
+    </div>
+
+    <!-- RIGHT PANEL: Bot Info -->
+    <div class="side-panel right" id="bot-panel">
+      <div class="panel-title">⚙ BOT</div>
+      <div class="char-display" id="bot-char-display"></div>
+      <div class="panel-title" style="margin-top:4px;">DECK SIZES</div>
+      <div id="deck-sizes" style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;display:flex;flex-direction:column;gap:4px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay hidden" id="modal-overlay">
+  <div class="modal" id="modal">
+    <h2 id="modal-title">GAME OVER</h2>
+    <p id="modal-msg"></p>
+    <div class="modal-stats" id="modal-stats"></div>
+    <button class="btn primary" onclick="initGame()" style="width:100%;">PLAY AGAIN</button>
+  </div>
+</div>
+
+<!-- Help Modal -->
+<div class="modal-overlay hidden" id="help-overlay">
+  <div class="modal" style="max-width:520px;text-align:left;">
+    <h2 style="font-size:1.2rem;margin-bottom:12px;">HOW TO PLAY</h2>
+    <div style="font-size:0.75rem;line-height:1.8;color:var(--muted);max-height:60vh;overflow-y:auto;">
+      <b style="color:var(--accent)">PHASES:</b> Each turn has 4 phases: Fast → Medium → Slow → Charged, then Movement.<br>
+      <b style="color:var(--accent)">CARDS:</b> Select a card from your hand, then click "PLAY CARD" or "ATTACK". Defense cards can be played any phase.<br>
+      <b style="color:var(--accent)">RANGE:</b> Melee=0 dist, Pistol/Shotgun/Grenade=1, AR/Missile=2, Sniper=3. Distance = spaces between you on the arena.<br>
+      <b style="color:var(--accent)">ARMOR:</b> Armor reduces damage. Specialized armor is more effective. Durability drops with each hit.<br>
+      <b style="color:var(--accent)">AMMO:</b> Each weapon has limited ammo. When depleted it's discarded automatically.<br>
+      <b style="color:var(--accent)">MOVEMENT:</b> After all phases, move to an adjacent location. Some characters move 2 spaces.<br>
+      <b style="color:var(--accent)">LOCATIONS:</b> Hero Zone buffs heroes, Villain Zone buffs villains, Armory lets you draw a weapon, Forge draws armor, Radiation deals 5 damage/turn, Scrap Heap discards a card.<br>
+      <b style="color:var(--accent)">WIN:</b> Reduce the opponent's HP to 0.
+    </div>
+    <button class="btn primary" onclick="document.getElementById('help-overlay').classList.add('hidden')" style="width:100%;margin-top:16px;">GOT IT</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  DATA DEFINITIONS
+// ============================================================
+
+const SPEED_ORDER = ['fast','medium','slow','charged'];
+const PHASES = ['fast','medium','slow','charged','movement'];
+
+// --- WEAPON CARDS (30) ---
+const WEAPON_POOL = [
+  // Pistols (range 1)
+  {id:'w1', name:'Desert Eagle', type:'weapon', subtype:'pistol', damage:28, ammo:7, speed:'medium', range:1, icon:'🔫'},
+  {id:'w2', name:'Glock 18', type:'weapon', subtype:'pistol', damage:18, ammo:15, speed:'fast', range:1, icon:'🔫'},
+  {id:'w3', name:'Revolver', type:'weapon', subtype:'pistol', damage:35, ammo:6, speed:'slow', range:1, icon:'🔫'},
+  {id:'w4', name:'Silenced USP', type:'weapon', subtype:'pistol', damage:22, ammo:12, speed:'fast', range:1, icon:'🔫'},
+  {id:'w5', name:'Magnum .500', type:'weapon', subtype:'pistol', damage:45, ammo:4, speed:'slow', range:1, icon:'🔫'},
+  // Shotguns (range 1)
+  {id:'w6', name:'SPAS-12', type:'weapon', subtype:'shotgun', damage:55, ammo:5, speed:'slow', range:1, icon:'🪃'},
+  {id:'w7', name:'Mossberg 500', type:'weapon', subtype:'shotgun', damage:48, ammo:6, speed:'slow', range:1, icon:'🪃'},
+  {id:'w8', name:'AA-12 Auto', type:'weapon', subtype:'shotgun', damage:38, ammo:10, speed:'medium', range:1, icon:'🪃'},
+  // Assault Rifles (range 2)
+  {id:'w9', name:'M4A1', type:'weapon', subtype:'assault_rifle', damage:32, ammo:10, speed:'medium', range:2, icon:'🎯'},
+  {id:'w10', name:'AK-47', type:'weapon', subtype:'assault_rifle', damage:38, ammo:8, speed:'medium', range:2, icon:'🎯'},
+  {id:'w11', name:'SCAR-H', type:'weapon', subtype:'assault_rifle', damage:42, ammo:7, speed:'medium', range:2, icon:'🎯'},
+  {id:'w12', name:'XM8 Compact', type:'weapon', subtype:'assault_rifle', damage:28, ammo:12, speed:'fast', range:2, icon:'🎯'},
+  // Sniper Rifles (range 3)
+  {id:'w13', name:'Barrett M82', type:'weapon', subtype:'sniper', damage:80, ammo:4, speed:'charged', range:3, icon:'🎯'},
+  {id:'w14', name:'Dragunov SVD', type:'weapon', subtype:'sniper', damage:65, ammo:5, speed:'slow', range:3, icon:'🎯'},
+  {id:'w15', name:'AWP', type:'weapon', subtype:'sniper', damage:95, ammo:3, speed:'charged', range:3, icon:'🎯'},
+  {id:'w16', name:'Intervention', type:'weapon', subtype:'sniper', damage:72, ammo:4, speed:'charged', range:3, icon:'🎯'},
+  // Grenades / Explosives (range 1)
+  {id:'w17', name:'Frag Grenade', type:'weapon', subtype:'explosive', damage:60, ammo:2, speed:'slow', range:1, icon:'💣'},
+  {id:'w18', name:'Flashbang', type:'weapon', subtype:'explosive', damage:20, ammo:3, speed:'fast', range:1, icon:'💣'},
+  {id:'w19', name:'Smoke Bomb', type:'weapon', subtype:'explosive', damage:10, ammo:4, speed:'fast', range:1, icon:'💣'},
+  {id:'w20', name:'Sticky Bomb', type:'weapon', subtype:'explosive', damage:75, ammo:2, speed:'charged', range:1, icon:'💣'},
+  // Missile / Heavy (range 2)
+  {id:'w21', name:'RPG-7', type:'weapon', subtype:'missile', damage:100, ammo:2, speed:'charged', range:2, icon:'🚀'},
+  {id:'w22', name:'Stinger SAM', type:'weapon', subtype:'missile', damage:85, ammo:2, speed:'charged', range:2, icon:'🚀'},
+  {id:'w23', name:'Javelin', type:'weapon', subtype:'missile', damage:90, ammo:2, speed:'charged', range:2, icon:'🚀'},
+  // Melee (range 0)
+  {id:'w24', name:'Combat Knife', type:'weapon', subtype:'melee', damage:30, ammo:8, speed:'fast', range:0, icon:'🗡️'},
+  {id:'w25', name:'War Hammer', type:'weapon', subtype:'melee', damage:55, ammo:5, speed:'slow', range:0, icon:'⚔️'},
+  {id:'w26', name:'Katana', type:'weapon', subtype:'melee', damage:42, ammo:6, speed:'medium', range:0, icon:'⚔️'},
+  {id:'w27', name:'Chainsaw', type:'weapon', subtype:'melee', damage:65, ammo:4, speed:'slow', range:0, icon:'⚙️'},
+  {id:'w28', name:'Shock Baton', type:'weapon', subtype:'melee', damage:25, ammo:10, speed:'fast', range:0, icon:'⚡'},
+  {id:'w29', name:'Plasma Blade', type:'weapon', subtype:'melee', damage:50, ammo:5, speed:'medium', range:0, icon:'⚡'},
+  {id:'w30', name:'Mini SMG', type:'weapon', subtype:'pistol', damage:15, ammo:20, speed:'fast', range:1, icon:'🔫'},
+];
+
+// --- DEFENSE CARDS (30) ---
+// Armor effectiveness: vest vs pistol/rifle/shotgun, helmet vs sniper, blast_armor vs explosive/missile, plate_armor vs all, med_kit/syringe/bandage/ointment = heal
+const DEFENSE_POOL = [
+  // Bullet Proof Vests (effective vs pistol, assault_rifle, shotgun)
+  {id:'d1', name:'Kevlar Vest', type:'defense', subtype:'vest', defense:40, durability:3, maxDurability:3, effectiveVs:['pistol','assault_rifle','shotgun'], healAmount:0, icon:'🛡️'},
+  {id:'d2', name:'Tactical Vest', type:'defense', subtype:'vest', defense:50, durability:3, maxDurability:3, effectiveVs:['pistol','assault_rifle','shotgun'], healAmount:0, icon:'🛡️'},
+  {id:'d3', name:'Riot Vest', type:'defense', subtype:'vest', defense:35, durability:4, maxDurability:4, effectiveVs:['pistol','assault_rifle','shotgun'], healAmount:0, icon:'🛡️'},
+  {id:'d4', name:'Nano Vest', type:'defense', subtype:'vest', defense:60, durability:2, maxDurability:2, effectiveVs:['pistol','assault_rifle','shotgun'], healAmount:0, icon:'🛡️'},
+  // Helmets (effective vs sniper)
+  {id:'d5', name:'Combat Helmet', type:'defense', subtype:'helmet', defense:45, durability:3, maxDurability:3, effectiveVs:['sniper'], healAmount:0, icon:'⛑️'},
+  {id:'d6', name:'Ballistic Helm', type:'defense', subtype:'helmet', defense:55, durability:3, maxDurability:3, effectiveVs:['sniper'], healAmount:0, icon:'⛑️'},
+  {id:'d7', name:'Full Face Guard', type:'defense', subtype:'helmet', defense:35, durability:4, maxDurability:4, effectiveVs:['sniper'], healAmount:0, icon:'⛑️'},
+  {id:'d8', name:'Exo Helm', type:'defense', subtype:'helmet', defense:65, durability:2, maxDurability:2, effectiveVs:['sniper'], healAmount:0, icon:'⛑️'},
+  // Blast Armor (effective vs explosive, missile)
+  {id:'d9', name:'Blast Suit', type:'defense', subtype:'blast_armor', defense:60, durability:3, maxDurability:3, effectiveVs:['explosive','missile'], healAmount:0, icon:'🦺'},
+  {id:'d10', name:'EOD Gear', type:'defense', subtype:'blast_armor', defense:70, durability:2, maxDurability:2, effectiveVs:['explosive','missile'], healAmount:0, icon:'🦺'},
+  {id:'d11', name:'Blast Plate', type:'defense', subtype:'blast_armor', defense:50, durability:4, maxDurability:4, effectiveVs:['explosive','missile'], healAmount:0, icon:'🦺'},
+  {id:'d12', name:'Demo Shield', type:'defense', subtype:'blast_armor', defense:45, durability:3, maxDurability:3, effectiveVs:['explosive','missile'], healAmount:0, icon:'🦺'},
+  // Plate Armor (general, effective vs all but less so)
+  {id:'d13', name:'Steel Plate', type:'defense', subtype:'plate_armor', defense:30, durability:5, maxDurability:5, effectiveVs:['pistol','assault_rifle','shotgun','sniper','explosive','missile','melee'], healAmount:0, icon:'🔰'},
+  {id:'d14', name:'Titanium Plate', type:'defense', subtype:'plate_armor', defense:40, durability:4, maxDurability:4, effectiveVs:['pistol','assault_rifle','shotgun','sniper','explosive','missile','melee'], healAmount:0, icon:'🔰'},
+  {id:'d15', name:'Dragon Scale', type:'defense', subtype:'plate_armor', defense:50, durability:3, maxDurability:3, effectiveVs:['pistol','assault_rifle','shotgun','sniper','explosive','missile','melee'], healAmount:0, icon:'🔰'},
+  {id:'d16', name:'Riot Shield', type:'defense', subtype:'plate_armor', defense:35, durability:6, maxDurability:6, effectiveVs:['pistol','assault_rifle','shotgun','sniper','explosive','missile','melee'], healAmount:0, icon:'🔰'},
+  // Melee-specific armor
+  {id:'d17', name:'Chain Mail', type:'defense', subtype:'plate_armor', defense:55, durability:4, maxDurability:4, effectiveVs:['melee'], healAmount:0, icon:'🔗'},
+  {id:'d18', name:'Spike Guard', type:'defense', subtype:'plate_armor', defense:45, durability:3, maxDurability:3, effectiveVs:['melee'], healAmount:0, icon:'🔗'},
+  // Healing items (one-time use)
+  {id:'d19', name:'Med Kit', type:'defense', subtype:'medkit', defense:0, durability:1, maxDurability:1, effectiveVs:[], healAmount:50, icon:'🏥'},
+  {id:'d20', name:'Med Kit II', type:'defense', subtype:'medkit', defense:0, durability:1, maxDurability:1, effectiveVs:[], healAmount:40, icon:'🏥'},
+  {id:'d21', name:'Syringe', type:'defense', subtype:'syringe', defense:0, durability:1, maxDurability:1, effectiveVs:[], healAmount:30, icon:'💉'},
+  {id:'d22', name:'Adrenaline Shot', type:'defense', subtype:'syringe', defense:0, durability:1, maxDurability:1, effectiveVs:[], healAmount:25, icon:'💉'},
+  {id:'d23', name:'Bandages', type:'defense', subtype:'bandage', defense:0, durability:1, maxDurability:1, effectiveVs:[], healAmount:20, icon:'🩹'},
+  {id:'d24', name:'Field Dressing', type:'defense', subtype:'bandage', defense:0, durability:1, maxDurability:1, effectiveVs:[], healAmount:15, icon:'🩹'},
+  {id:'d25', name:'Ointment', type:'defense', subtype:'ointment', defense:0, durability:1, maxDurability:1, effectiveVs:[], healAmount:12, icon:'🧴'},
+  {id:'d26', name:'Combat Stim', type:'defense', subtype:'syringe', defense:0, durability:1, maxDurability:1, effectiveVs:[], healAmount:35, icon:'💉'},
+  // More armors
+  {id:'d27', name:'Exo Suit', type:'defense', subtype:'plate_armor', defense:55, durability:3, maxDurability:3, effectiveVs:['pistol','assault_rifle','shotgun','sniper','explosive','missile','melee'], healAmount:0, icon:'🤖'},
+  {id:'d28', name:'Energy Shield', type:'defense', subtype:'plate_armor', defense:45, durability:3, maxDurability:3, effectiveVs:['pistol','assault_rifle','shotgun','sniper','explosive','missile','melee'], healAmount:0, icon:'🔵'},
+  {id:'d29', name:'Ceramic Plate', type:'defense', subtype:'vest', defense:38, durability:4, maxDurability:4, effectiveVs:['pistol','assault_rifle','shotgun'], healAmount:0, icon:'🛡️'},
+  {id:'d30', name:'Carbon Weave', type:'defense', subtype:'blast_armor', defense:42, durability:3, maxDurability:3, effectiveVs:['explosive','missile'], healAmount:0, icon:'🦺'},
+];
+
+// --- CHARACTER CARDS (15) ---
+const CHARACTER_POOL = [
+  {id:'c1', name:'Ghost Ops', type:'character', faction:'hero', hp:120, maxHp:120, speed:9, attribute:'pistol_specialist', attrDesc:'Pistol +30% dmg', icon:'👤'},
+  {id:'c2', name:'Iron Rex', type:'character', faction:'villain', hp:200, maxHp:200, speed:4, attribute:'heavy_armor', attrDesc:'Armor +40% eff', icon:'🤖'},
+  {id:'c3', name:'Viper', type:'character', faction:'villain', hp:110, maxHp:110, speed:10, attribute:'swift', attrDesc:'Move 2 spaces/turn', icon:'🐍'},
+  {id:'c4', name:'The Medic', type:'character', faction:'hero', hp:130, maxHp:130, speed:6, attribute:'healing', attrDesc:'Heals 10 HP/turn', icon:'💊'},
+  {id:'c5', name:'Tank', type:'character', faction:'villain', hp:250, maxHp:250, speed:2, attribute:'sniper_resist', attrDesc:'Sniper -50% dmg', icon:'💀'},
+  {id:'c6', name:'Shadow', type:'character', faction:'hero', hp:100, maxHp:100, speed:10, attribute:'shotgun_specialist', attrDesc:'Shotgun +30% dmg', icon:'🌑'},
+  {id:'c7', name:'Commando', type:'character', faction:'hero', hp:150, maxHp:150, speed:7, attribute:'rifle_specialist', attrDesc:'Rifle +25% dmg', icon:'🎖️'},
+  {id:'c8', name:'Rogue', type:'character', faction:'villain', hp:115, maxHp:115, speed:9, attribute:'swift', attrDesc:'Move 2 spaces/turn', icon:'🃏'},
+  {id:'c9', name:'Berserker', type:'character', faction:'villain', hp:175, maxHp:175, speed:5, attribute:'melee_specialist', attrDesc:'Melee +40% dmg', icon:'🪓'},
+  {id:'c10', name:'Sentinel', type:'character', faction:'hero', hp:180, maxHp:180, speed:4, attribute:'explosive_resist', attrDesc:'Explosion -40% dmg', icon:'🛡️'},
+  {id:'c11', name:'Wraith', type:'character', faction:'hero', hp:105, maxHp:105, speed:10, attribute:'extra_carry', attrDesc:'Hold 5 cards (draw from Armory/Forge)', icon:'👻'},
+  {id:'c12', name:'Warlord', type:'character', faction:'villain', hp:160, maxHp:160, speed:6, attribute:'sniper_specialist', attrDesc:'Sniper +35% dmg', icon:'👑'},
+  {id:'c13', name:'Titan', type:'character', faction:'villain', hp:220, maxHp:220, speed:3, attribute:'heavy_armor', attrDesc:'Armor +40% eff', icon:'⚡'},
+  {id:'c14', name:'Doc Havoc', type:'character', faction:'hero', hp:135, maxHp:135, speed:7, attribute:'healing', attrDesc:'Heals 10 HP/turn', icon:'🩺'},
+  {id:'c15', name:'Demolisher', type:'character', faction:'villain', hp:145, maxHp:145, speed:6, attribute:'explosive_specialist', attrDesc:'Explosive +35% dmg', icon:'💥'},
+];
+
+// --- LOCATION CARDS (9) ---
+const LOCATION_POOL = [
+  {id:'l1', name:'Neutral Zone', effect:'neutral', effectDesc:'No special effect', icon:'⬜', css:'neutral'},
+  {id:'l2', name:'Hero Sanctum', effect:'hero_zone', effectDesc:'+20% dmg for heroes', icon:'🌟', css:'hero-zone'},
+  {id:'l3', name:'Villain Den', effect:'villain_zone', effectDesc:'+20% dmg for villains', icon:'💀', css:'villain-zone'},
+  {id:'l4', name:'The Armory', effect:'draw_weapon', effectDesc:'Draw weapon card', icon:'🔧', css:'buff'},
+  {id:'l5', name:'The Forge', effect:'draw_defense', effectDesc:'Draw defense card', icon:'⚒️', css:'buff'},
+  {id:'l6', name:'Radiation Zone', effect:'radiation', effectDesc:'-5 HP per turn here', icon:'☢️', css:'danger'},
+  {id:'l7', name:'Stink Swamp', effect:'poison', effectDesc:'-8 HP per turn here', icon:'🌿', css:'danger'},
+  {id:'l8', name:'Scrap Heap', effect:'discard', effectDesc:'Optionally discard 1 card', icon:'🗑️', css:'neutral'},
+  {id:'l9', name:'Neutral Zone', effect:'neutral', effectDesc:'No special effect', icon:'⬜', css:'neutral'},
+];
+
+// ============================================================
+//  GAME STATE
+// ============================================================
+let G = {};
+
+function deepClone(obj) { return JSON.parse(JSON.stringify(obj)); }
+function shuffle(arr) {
+  const a = [...arr];
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+function pick(arr, n=1) { return shuffle(arr).slice(0, n); }
+function rand(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
+
+// ============================================================
+//  INIT
+// ============================================================
+function initGame() {
+  document.getElementById('modal-overlay').classList.add('hidden');
+
+  // Decks — fresh shuffled copies
+  const weaponDeck = shuffle(deepClone(WEAPON_POOL));
+  const defenseDeck = shuffle(deepClone(DEFENSE_POOL));
+  const charPool = shuffle(deepClone(CHARACTER_POOL));
+
+  // Pick two distinct characters
+  const playerChar = deepClone(charPool[0]);
+  const botChar = deepClone(charPool[1]);
+
+  // Exact starting hands: exactly 2 weapons + 2 defense cards each, no exceptions
+  // (extra_carry only unlocks a 5th slot via Armory/Forge draws, not at start)
+  const playerHand = [
+    deepClone(weaponDeck.shift()),
+    deepClone(weaponDeck.shift()),
+    deepClone(defenseDeck.shift()),
+    deepClone(defenseDeck.shift()),
+  ];
+  const botHand = [
+    deepClone(weaponDeck.shift()),
+    deepClone(weaponDeck.shift()),
+    deepClone(defenseDeck.shift()),
+    deepClone(defenseDeck.shift()),
+  ];
+
+  // Locations: plus layout. Center (index 2) always neutral.
+  const locs = shuffle(deepClone(LOCATION_POOL)).slice(0, 9);
+  locs[2] = deepClone({id:'lCenter', name:'Central Ground', effect:'neutral', effectDesc:'No special effect', icon:'⬜', css:'neutral'});
+
+  // Player starts at loc 0 (left end of spine), bot at loc 4 (right end)
+  G = {
+    turn: 1,
+    phase: 0,
+    playerChar: deepClone(playerChar),
+    botChar: deepClone(botChar),
+    playerHand,
+    botHand,
+    playerInPlay: [],
+    botInPlay: [],
+    playerPos: 0,
+    botPos: 4,
+    locations: locs,
+    weaponDeck,
+    defenseDeck,
+    selectedCard: null,
+    playerActedThisPhase: false,
+    botActedThisPhase: false,
+    awaitingMove: false,
+    // Scrap Heap: when player is on scrap heap at start of fast phase,
+    // they must choose a card to discard before acting.
+    awaitingScrapChoice: false,
+    gameOver: false,
+    log: [],
+  };
+
+  logMsg('system', `=== BLAST BATTLES — Turn 1 ===`);
+  logMsg('system', `You: ${G.playerChar.name} (${G.playerChar.faction}) | Bot: ${G.botChar.name} (${G.botChar.faction})`);
+  logMsg('system', `You start at ${G.locations[G.playerPos].name}. Bot starts at ${G.locations[G.botPos].name}.`);
+
+  render();
+  startPhase();
+}
+
+// ============================================================
+//  PHASE MANAGEMENT
+// ============================================================
+function startPhase() {
+  G.playerActedThisPhase = false;
+  G.botActedThisPhase = false;
+  G.selectedCard = null;
+  G.awaitingMove = false;
+  G.awaitingScrapChoice = false;
+
+  const phase = PHASES[G.phase];
+  logMsg('phase', `— ${phase.toUpperCase()} PHASE —`);
+
+  // Apply location effects at start of fast phase (before any actions)
+  if(phase === 'fast') {
+    applyLocationEffects();
+    // Passive healing attribute
+    if(G.playerChar.attribute === 'healing') {
+      healPlayer(10); logMsg('heal', `${G.playerChar.name}'s healing aura restores 10 HP.`);
+    }
+    if(G.botChar.attribute === 'healing') {
+      healBot(10); logMsg('heal', `${G.botChar.name}'s healing aura restores 10 HP.`);
+    }
+    checkWin();
+    if(G.gameOver) return;
+  }
+
+  if(phase === 'movement') {
+    // Bot moves synchronously first, flag it done immediately
+    botMove();
+    G.botActedThisPhase = true;
+    // Player now picks a tile or hits STAY PUT — checkPhaseComplete fires when they do
+    G.awaitingMove = true;
+    render();
+    logMsg('system', 'Movement phase: click a highlighted tile to move, or STAY PUT to skip.');
+    return;
+  }
+
+  // Combat phase: bot acts after short delay, then checkPhaseComplete
+  setTimeout(() => {
+    botPlayPhase();
+    render();
+    checkWin();
+    if(!G.gameOver) checkPhaseComplete();
+  }, 500);
+
+  render();
+  updateHint();
+}
+
+function playerPlayCard(card) {
+  if(G.playerActedThisPhase) { logMsg('system','You already acted this phase.'); return; }
+  if(G.gameOver) return;
+  if(G.awaitingScrapChoice) { logMsg('system','You must choose a card to scrap first.'); return; }
+
+  const phase = PHASES[G.phase];
+
+  if(card.type === 'weapon') {
+    if(card.speed !== phase) {
+      logMsg('system',`${card.name} is a ${card.speed} weapon — can only play in the ${card.speed} phase.`); return;
+    }
+    const dist = getDistance(G.playerPos, G.botPos);
+    if(dist !== card.range) {
+      logMsg('system',`${card.name} requires range ${card.range}, but you are ${dist} space(s) apart.`); return;
+    }
+
+    // Move weapon from hand to inPlay if not already there
+    if(G.playerHand.find(c=>c.id===card.id)) {
+      G.playerHand = G.playerHand.filter(c=>c.id!==card.id);
+      G.playerInPlay.push(card);
+    }
+
+    let dmg = card.damage;
+    dmg = applyPlayerWeaponBuff(dmg, card);
+    dmg = applyLocationDamageBuff(dmg, G.playerChar, G.playerPos);
+    const result = applyBotArmor(dmg, card);
+    G.botChar.hp = Math.max(0, G.botChar.hp - result.finalDmg);
+    logMsg('player', `You fire ${card.name} → ${result.finalDmg} dmg (base ${dmg})${result.armorNote}.`);
+
+    card.ammo--;
+    if(card.ammo <= 0) {
+      G.playerInPlay = G.playerInPlay.filter(c=>c.id!==card.id);
+      logMsg('system',`${card.name} is out of ammo and discarded.`);
+    }
+    G.playerActedThisPhase = true;
+    G.selectedCard = null;
+    checkWin();
+    if(!G.gameOver) checkPhaseComplete();
+    render();
+
+  } else if(card.type === 'defense') {
+    const isHeal = card.healAmount > 0;
+    if(isHeal) {
+      healPlayer(card.healAmount);
+      logMsg('heal', `You use ${card.name} → +${card.healAmount} HP.`);
+      G.playerHand = G.playerHand.filter(c=>c.id!==card.id);
+      G.playerInPlay = G.playerInPlay.filter(c=>c.id!==card.id);
+    } else {
+      if(!G.playerInPlay.find(c=>c.id===card.id)) {
+        G.playerHand = G.playerHand.filter(c=>c.id!==card.id);
+        G.playerInPlay.push(card);
+        logMsg('player', `You equip ${card.name} (${card.defense} def, ${card.durability} dur).`);
+      } else {
+        logMsg('system', `${card.name} is already equipped.`); return;
+      }
+    }
+    G.playerActedThisPhase = true;
+    G.selectedCard = null;
+    checkPhaseComplete();
+    render();
+  }
+}
+
+function playerPlaySelectedCard() {
+  if(!G.selectedCard) return;
+  // Card can be in hand OR already in play (weapon already deployed)
+  const card = G.playerHand.find(c=>c.id===G.selectedCard) || G.playerInPlay.find(c=>c.id===G.selectedCard);
+  if(!card) { logMsg('system','Card not found.'); return; }
+  playerPlayCard(card);
+}
+
+function botPlayPhase() {
+  // Bot randomly decides to act or skip (25% chance to pass)
+  const shouldAct = Math.random() > 0.25;
+  if(!shouldAct) {
+    logMsg('bot','Bot passes this phase.');
+    G.botActedThisPhase = true;
+    return;
+  }
+
+  const phase = PHASES[G.phase];
+
+  // Priority 1: heal if low HP
+  if(G.botChar.hp < G.botChar.maxHp * 0.4 && Math.random() > 0.4) {
+    const healCard = G.botHand.find(c=>c.type==='defense' && c.healAmount>0);
+    if(healCard) {
+      healBot(healCard.healAmount);
+      G.botHand = G.botHand.filter(c=>c.id!==healCard.id);
+      logMsg('bot',`Bot uses ${healCard.name} → +${healCard.healAmount} HP.`);
+      G.botActedThisPhase = true;
+      return;
+    }
+  }
+
+  // Priority 2: equip armor from hand if not already in play
+  const unequippedArmor = G.botHand.filter(c=>c.type==='defense' && c.healAmount===0);
+  if(unequippedArmor.length > 0 && Math.random() > 0.5) {
+    const armor = rand(unequippedArmor);
+    G.botHand = G.botHand.filter(c=>c.id!==armor.id);
+    G.botInPlay.push(armor);
+    logMsg('bot',`Bot equips ${armor.name}.`);
+    G.botActedThisPhase = true;
+    return;
+  }
+
+  // Priority 3: fire a weapon matching this phase's speed at correct range
+  const allBotWeapons = [
+    ...G.botHand.filter(c=>c.type==='weapon'),
+    ...G.botInPlay.filter(c=>c.type==='weapon'),
+  ];
+  const dist = getDistance(G.botPos, G.playerPos);
+  const validWeapons = allBotWeapons.filter(c=>c.speed===phase && c.range===dist);
+
+  if(validWeapons.length > 0) {
+    const weapon = rand(validWeapons);
+    // Move weapon to inPlay if it was in hand
+    if(G.botHand.find(c=>c.id===weapon.id)) {
+      G.botHand = G.botHand.filter(c=>c.id!==weapon.id);
+      G.botInPlay.push(weapon);
+    }
+    let dmg = weapon.damage;
+    dmg = applyBotWeaponBuff(dmg, weapon);
+    dmg = applyLocationDamageBuff(dmg, G.botChar, G.botPos);
+    const result = applyPlayerArmor(dmg, weapon);
+    G.playerChar.hp = Math.max(0, G.playerChar.hp - result.finalDmg);
+    logMsg('bot',`Bot fires ${weapon.name} → ${result.finalDmg} dmg on you${result.armorNote}.`);
+    weapon.ammo--;
+    if(weapon.ammo <= 0) {
+      G.botInPlay = G.botInPlay.filter(c=>c.id!==weapon.id);
+      logMsg('system',`Bot's ${weapon.name} is out of ammo and discarded.`);
+    }
+    G.botActedThisPhase = true;
+    return;
+  }
+
+  // No valid action
+  logMsg('bot','Bot has no valid action this phase. Passes.');
+  G.botActedThisPhase = true;
+}
+
+function botMove() {
+  const isSwift = G.botChar.attribute === 'swift';
+  const steps = isSwift ? 2 : 1;
+  let pos = G.botPos;
+  for(let s=0; s<steps; s++){
+    const neighbors = getAdjacentIndices(pos);
+    if(neighbors.length === 0) break;
+    // Try to close distance to player
+    const curDist = getDistance(pos, G.playerPos);
+    const closer = neighbors.filter(n=>getDistance(n, G.playerPos) < curDist);
+    const next = closer.length > 0 ? rand(closer) : rand(neighbors);
+    pos = next;
+  }
+  if(pos !== G.botPos) {
+    logMsg('bot',`Bot moves: ${G.locations[G.botPos].name} → ${G.locations[pos].name}.`);
+    G.botPos = pos;
+  } else {
+    logMsg('bot','Bot stays in place.');
+  }
+}
+
+function skipPhase() {
+  if(G.playerActedThisPhase) return;
+  const phase = PHASES[G.phase];
+  // If awaiting scrap choice, skipping dismisses it without discarding
+  if(G.awaitingScrapChoice) {
+    G.awaitingScrapChoice = false;
+    logMsg('system','You pass on the Scrap Heap.');
+    render();
+    return;
+  }
+  if(phase === 'movement') {
+    logMsg('player','You stay in place.');
+    G.awaitingMove = false;
+  }
+  G.playerActedThisPhase = true;
+  checkPhaseComplete();
+  render();
+}
+
+function checkPhaseComplete() {
+  if(G.playerActedThisPhase && G.botActedThisPhase) {
+    advancePhase();
+  }
+}
+
+function advancePhase() {
+  G.phase++;
+  if(G.phase >= PHASES.length) {
+    // New turn
+    G.phase = 0;
+    G.turn++;
+    logMsg('system', `=== TURN ${G.turn} BEGINS ===`);
+  }
+  if(G.gameOver) return;
+  setTimeout(()=>{ startPhase(); render(); }, 200);
+}
+
+function playerMove(locIndex) {
+  if(!G.awaitingMove || G.playerActedThisPhase) return;
+  const isSwift = G.playerChar.attribute === 'swift';
+  const steps = isSwift ? 2 : 1;
+  const reachable = getReachable(G.playerPos, steps);
+
+  if(locIndex === G.playerPos) {
+    logMsg('player','You stay in place.');
+  } else if(reachable.includes(locIndex)) {
+    logMsg('player',`You move to ${G.locations[locIndex].name}.`);
+    G.playerPos = locIndex;
+  } else {
+    logMsg('system','That location is not reachable this turn.'); return;
+  }
+
+  G.awaitingMove = false;
+  G.playerActedThisPhase = true;
+  checkPhaseComplete();
+  render();
+}
+
+// ============================================================
+//  HELPERS
+// ============================================================
+
+// Plus layout: spine [0,1,2,3,4], up=[5,6], down=[7,8]
+// Adjacency:
+// 0-1, 1-2, 2-3, 3-4 (spine)
+// 2-5, 5-6 (up branch from center index 2)
+// 2-7, 7-8 (down branch from center index 2)
+const ADJACENCY = {
+  0:[1], 1:[0,2], 2:[1,3,5,7], 3:[2,4], 4:[3],
+  5:[2,6], 6:[5], 7:[2,8], 8:[7]
+};
+
+function getAdjacentIndices(pos) { return ADJACENCY[pos]||[]; }
+
+function getReachable(pos, steps) {
+  let visited = new Set([pos]);
+  let frontier = [pos];
+  for(let s=0;s<steps;s++){
+    let next=[];
+    for(const p of frontier){ for(const a of getAdjacentIndices(p)){ if(!visited.has(a)){visited.add(a);next.push(a);}}}
+    frontier=next;
+  }
+  visited.delete(pos);
+  return [...visited];
+}
+
+function getDistance(a, b) {
+  // BFS shortest path
+  if(a===b) return 0;
+  const visited = new Set([a]);
+  let frontier = [a]; let dist=0;
+  while(frontier.length){
+    dist++;
+    let next=[];
+    for(const p of frontier){ for(const n of getAdjacentIndices(p)){if(n===b)return dist;if(!visited.has(n)){visited.add(n);next.push(n);}}}
+    frontier=next;
+  }
+  return 99;
+}
+
+function applyPlayerWeaponBuff(dmg, card) {
+  const attr = G.playerChar.attribute;
+  const sub = card.subtype;
+  if(attr==='pistol_specialist'&&sub==='pistol') return Math.floor(dmg*1.3);
+  if(attr==='shotgun_specialist'&&sub==='shotgun') return Math.floor(dmg*1.3);
+  if(attr==='rifle_specialist'&&(sub==='assault_rifle'||sub==='sniper')) return Math.floor(dmg*1.25);
+  if(attr==='sniper_specialist'&&sub==='sniper') return Math.floor(dmg*1.35);
+  if(attr==='explosive_specialist'&&(sub==='explosive'||sub==='missile')) return Math.floor(dmg*1.35);
+  if(attr==='melee_specialist'&&sub==='melee') return Math.floor(dmg*1.4);
+  return dmg;
+}
+function applyBotWeaponBuff(dmg, card) {
+  const attr = G.botChar.attribute;
+  const sub = card.subtype;
+  if(attr==='pistol_specialist'&&sub==='pistol') return Math.floor(dmg*1.3);
+  if(attr==='shotgun_specialist'&&sub==='shotgun') return Math.floor(dmg*1.3);
+  if(attr==='rifle_specialist'&&(sub==='assault_rifle'||sub==='sniper')) return Math.floor(dmg*1.25);
+  if(attr==='sniper_specialist'&&sub==='sniper') return Math.floor(dmg*1.35);
+  if(attr==='explosive_specialist'&&(sub==='explosive'||sub==='missile')) return Math.floor(dmg*1.35);
+  if(attr==='melee_specialist'&&sub==='melee') return Math.floor(dmg*1.4);
+  return dmg;
+}
+
+function applyLocationDamageBuff(dmg, char, pos) {
+  const loc = G.locations[pos];
+  if(!loc) return dmg;
+  if(loc.effect==='hero_zone'&&char.faction==='hero') return Math.floor(dmg*1.2);
+  if(loc.effect==='villain_zone'&&char.faction==='villain') return Math.floor(dmg*1.2);
+  return dmg;
+}
+
+function applyBotArmor(dmg, attackingCard) {
+  let finalDmg = dmg;
+  let armorNote = '';
+  for(const armor of G.botInPlay.filter(c=>c.type==='defense'&&c.healAmount===0)) {
+    const isEffective = armor.effectiveVs.includes(attackingCard.subtype);
+    let reduction = isEffective ? armor.defense : Math.floor(armor.defense*0.4);
+    if(G.botChar.attribute==='heavy_armor') reduction = Math.floor(reduction*1.4);
+    if(G.botChar.attribute==='sniper_resist'&&attackingCard.subtype==='sniper') reduction = Math.floor(dmg*0.5);
+    if(G.botChar.attribute==='explosive_resist'&&(attackingCard.subtype==='explosive'||attackingCard.subtype==='missile')) reduction=Math.floor(dmg*0.4);
+    const actualReduction = Math.min(finalDmg, reduction);
+    finalDmg -= actualReduction;
+    if(actualReduction>0) {
+      const durabLost = isEffective ? 1 : (dmg > 50 ? 2 : 1);
+      armor.durability -= durabLost;
+      armorNote += ` (${armor.name} blocked ${actualReduction})`;
+      if(armor.durability<=0) {
+        G.botInPlay=G.botInPlay.filter(c=>c.id!==armor.id);
+        armorNote += ' [BROKEN]';
+      }
+    }
+  }
+  return {finalDmg:Math.max(0,finalDmg), armorNote};
+}
+
+function applyPlayerArmor(dmg, attackingCard) {
+  let finalDmg = dmg;
+  let armorNote = '';
+  for(const armor of G.playerInPlay.filter(c=>c.type==='defense'&&c.healAmount===0)) {
+    const isEffective = armor.effectiveVs.includes(attackingCard.subtype);
+    let reduction = isEffective ? armor.defense : Math.floor(armor.defense*0.4);
+    if(G.playerChar.attribute==='heavy_armor') reduction = Math.floor(reduction*1.4);
+    if(G.playerChar.attribute==='sniper_resist'&&attackingCard.subtype==='sniper') reduction=Math.floor(dmg*0.5);
+    if(G.playerChar.attribute==='explosive_resist'&&(attackingCard.subtype==='explosive'||attackingCard.subtype==='missile')) reduction=Math.floor(dmg*0.4);
+    const actualReduction = Math.min(finalDmg, reduction);
+    finalDmg -= actualReduction;
+    if(actualReduction>0) {
+      const durabLost = isEffective ? 1 : (dmg > 50 ? 2 : 1);
+      armor.durability -= durabLost;
+      armorNote += ` (${armor.name} blocked ${actualReduction})`;
+      if(armor.durability<=0){
+        G.playerInPlay=G.playerInPlay.filter(c=>c.id!==armor.id);
+        armorNote+=' [BROKEN]';
+      }
+    }
+  }
+  return {finalDmg:Math.max(0,finalDmg), armorNote};
+}
+
+function getMaxHandSize(char) {
+  // Max TOTAL cards (hand + in-play combined)
+  return char.attribute === 'extra_carry' ? 5 : 4;
+}
+
+function playerTotalCards() {
+  return G.playerHand.length + G.playerInPlay.length;
+}
+
+function botTotalCards() {
+  return G.botHand.length + G.botInPlay.length;
+}
+
+function applyLocationEffects() {
+  // --- Player location ---
+  const pLoc = G.locations[G.playerPos];
+
+  if(pLoc.effect === 'radiation' || pLoc.effect === 'poison') {
+    const dmg = pLoc.effect === 'radiation' ? 5 : 8;
+    G.playerChar.hp = Math.max(0, G.playerChar.hp - dmg);
+    logMsg('damage',`${pLoc.name} deals ${dmg} damage to you.`);
+  }
+
+  if(pLoc.effect === 'draw_weapon') {
+    const maxTotal = getMaxHandSize(G.playerChar);
+    if(playerTotalCards() < maxTotal && G.weaponDeck.length > 0) {
+      const c = G.weaponDeck.shift();
+      G.playerHand.push(c);
+      logMsg('player',`Armory grants you ${c.name}!`);
+    } else if(playerTotalCards() >= maxTotal) {
+      logMsg('system','Your cards are full — Armory card forfeited.');
+    }
+  }
+
+  if(pLoc.effect === 'draw_defense') {
+    const maxTotal = getMaxHandSize(G.playerChar);
+    if(playerTotalCards() < maxTotal && G.defenseDeck.length > 0) {
+      const c = G.defenseDeck.shift();
+      G.playerHand.push(c);
+      logMsg('player',`Forge grants you ${c.name}!`);
+    } else if(playerTotalCards() >= maxTotal) {
+      logMsg('system','Your cards are full — Forge card forfeited.');
+    }
+  }
+
+  if(pLoc.effect === 'discard') {
+    const allPlayerCards = [...G.playerHand, ...G.playerInPlay];
+    if(allPlayerCards.length > 0) {
+      G.awaitingScrapChoice = true;
+      logMsg('system','Scrap Heap: optionally click a card to discard it, or SKIP to keep all cards.');
+    }
+  }
+
+  // --- Bot location ---
+  const bLoc = G.locations[G.botPos];
+
+  if(bLoc.effect === 'radiation' || bLoc.effect === 'poison') {
+    const dmg = bLoc.effect === 'radiation' ? 5 : 8;
+    G.botChar.hp = Math.max(0, G.botChar.hp - dmg);
+    logMsg('damage',`${bLoc.name} deals ${dmg} damage to bot.`);
+  }
+
+  if(bLoc.effect === 'draw_weapon' && G.weaponDeck.length > 0 && botTotalCards() < getMaxHandSize(G.botChar)) {
+    const c = G.weaponDeck.shift();
+    G.botHand.push(c);
+    logMsg('bot',`Bot draws a weapon from Armory.`);
+  }
+
+  if(bLoc.effect === 'draw_defense' && G.defenseDeck.length > 0 && botTotalCards() < getMaxHandSize(G.botChar)) {
+    const c = G.defenseDeck.shift();
+    G.botHand.push(c);
+    logMsg('bot',`Bot draws a defense card from Forge.`);
+  }
+
+  if(bLoc.effect === 'discard') {
+    // Bot optionally discards — skip (bot has no reason to voluntarily discard)
+    logMsg('system',`Bot is on the Scrap Heap but chooses not to discard.`);
+  }
+}
+
+// Player chooses which card to scrap (called from UI)
+function playerScrapCard(cardId) {
+  if(!G.awaitingScrapChoice) return;
+  const card = G.playerHand.find(c=>c.id===cardId) || G.playerInPlay.find(c=>c.id===cardId);
+  if(!card) return;
+  G.playerHand = G.playerHand.filter(c=>c.id!==cardId);
+  G.playerInPlay = G.playerInPlay.filter(c=>c.id!==cardId);
+  logMsg('player',`You scrap ${card.name}.`);
+  G.awaitingScrapChoice = false;
+  render();
+}
+
+function healPlayer(amount) {
+  G.playerChar.hp = Math.min(G.playerChar.maxHp, G.playerChar.hp + amount);
+}
+function healBot(amount) {
+  G.botChar.hp = Math.min(G.botChar.maxHp, G.botChar.hp + amount);
+}
+
+function checkWin() {
+  if(G.gameOver) return;
+  if(G.playerChar.hp<=0) { endGame('bot'); return; }
+  if(G.botChar.hp<=0) { endGame('player'); return; }
+}
+
+function endGame(winner) {
+  G.gameOver = true;
+  const won = winner==='player';
+  document.getElementById('modal-title').textContent = won ? '🏆 VICTORY!' : '💀 DEFEATED';
+  document.getElementById('modal-msg').textContent = won ? `You defeated ${G.botChar.name}!` : `${G.botChar.name} has eliminated you.`;
+  document.getElementById('modal-stats').innerHTML = `
+    <div class="modal-stat"><div class="modal-stat-label">Your HP</div><div class="modal-stat-value" style="color:var(--hero)">${G.playerChar.hp}</div></div>
+    <div class="modal-stat"><div class="modal-stat-label">Bot HP</div><div class="modal-stat-value" style="color:var(--villain)">${G.botChar.hp}</div></div>
+    <div class="modal-stat"><div class="modal-stat-label">Turns</div><div class="modal-stat-value">${G.turn}</div></div>
+    <div class="modal-stat"><div class="modal-stat-label">Phase</div><div class="modal-stat-value">${PHASES[G.phase]}</div></div>
+  `;
+  document.getElementById('modal-overlay').classList.remove('hidden');
+}
+
+// ============================================================
+//  LOGGING
+// ============================================================
+function logMsg(type, text) {
+  if(!G.log) G.log=[];
+  G.log.push({type,text});
+  const el=document.getElementById('log');
+  if(!el) return;
+  const div=document.createElement('div');
+  div.className=`log-entry log-${type} new-entry`;
+  div.textContent=text;
+  el.appendChild(div);
+  el.scrollTop=el.scrollHeight;
+}
+
+// ============================================================
+//  RENDER
+// ============================================================
+function render() {
+  renderCharDisplay('player-char-display', G.playerChar, G.locations[G.playerPos]);
+  renderCharDisplay('bot-char-display', G.botChar, G.locations[G.botPos]);
+  renderHand();
+  renderBotHand();
+  renderArena();
+  renderInPlay();
+  renderDeckSizes();
+  updatePhaseUI();
+  updateHint();
+}
+
+function renderCharDisplay(elId, char, loc) {
+  const el=document.getElementById(elId); if(!el) return;
+  const pct=Math.max(0,(char.hp/char.maxHp)*100);
+  el.innerHTML=`
+    <div class="char-name">${char.icon} ${char.name}</div>
+    <div class="char-type ${char.faction}">${char.faction.toUpperCase()}</div>
+    <div class="hp-bar-wrap">
+      <div class="hp-label">${char.hp} / ${char.maxHp} HP</div>
+      <div class="hp-bar"><div class="hp-fill" style="width:${pct}%"></div></div>
+    </div>
+    <div class="char-stats">
+      <div class="stat" style="grid-column:1/-1"><div class="stat-label">Speed</div>${char.speed}</div>
+    </div>
+    <div class="char-attr">⭐ ${char.attrDesc}</div>
+    <div style="margin-top:6px;font-size:0.65rem;color:var(--muted);">📍 ${loc?loc.name:'?'}</div>
+  `;
+}
+
+function renderHand() {
+  const el=document.getElementById('player-hand-display'); if(!el) return;
+  el.innerHTML='';
+
+  for(const card of G.playerHand) {
+    const div=buildCardEl(card, true);
+    if(G.awaitingScrapChoice) {
+      // In scrap mode: clicking any card scraps it
+      div.style.cursor='pointer';
+      div.title='Click to SCRAP this card';
+      const scrapBadge=document.createElement('div');
+      scrapBadge.style.cssText='position:absolute;top:0;left:0;right:0;background:rgba(255,68,68,0.85);color:#fff;font-size:0.55rem;text-align:center;padding:2px;font-family:Share Tech Mono,monospace;letter-spacing:1px;font-weight:700;';
+      scrapBadge.textContent='CLICK TO SCRAP';
+      div.appendChild(scrapBadge);
+      div.addEventListener('click',()=>playerScrapCard(card.id));
+    } else {
+      div.addEventListener('click',()=>{
+        G.selectedCard = G.selectedCard===card.id ? null : card.id;
+        render();
+      });
+      if(G.selectedCard===card.id) div.classList.add('selected');
+    }
+    el.appendChild(div);
+  }
+
+  // Action buttons in controls bar
+  const ctrl=document.getElementById('controls-bar');
+  const old=ctrl.querySelectorAll('.action-btn');
+  old.forEach(b=>b.remove());
+
+  if(G.awaitingScrapChoice) return; // No action buttons during scrap choice
+
+  if(G.selectedCard && !G.gameOver && !G.playerActedThisPhase) {
+    const card = G.playerHand.find(c=>c.id===G.selectedCard) || G.playerInPlay.find(c=>c.id===G.selectedCard);
+    if(card) {
+      const phase = PHASES[G.phase];
+      if(card.type==='weapon' && phase !== 'movement') {
+        const btn=document.createElement('button');
+        btn.className='btn primary action-btn';
+        btn.textContent=`🔥 FIRE ${card.name.toUpperCase()}`;
+        btn.onclick=()=>playerPlaySelectedCard();
+        ctrl.insertBefore(btn, document.getElementById('btn-skip'));
+      }
+      if(card.type==='defense' && phase !== 'movement') {
+        const label = card.healAmount>0 ? `💊 USE ${card.name.toUpperCase()}` : `🛡️ EQUIP ${card.name.toUpperCase()}`;
+        const btn=document.createElement('button');
+        btn.className='btn action-btn';
+        btn.style.borderColor='var(--hero)';
+        btn.style.color='var(--hero)';
+        btn.textContent=label;
+        btn.onclick=()=>playerPlaySelectedCard();
+        ctrl.insertBefore(btn, document.getElementById('btn-skip'));
+      }
+    }
+  }
+}
+
+function renderBotHand() {
+  const el=document.getElementById('bot-hand-display'); if(!el) return;
+  el.innerHTML='';
+  document.getElementById('bot-card-count').textContent=G.botHand.length;
+  for(let i=0;i<G.botHand.length;i++){
+    const div=buildHiddenCard();
+    el.appendChild(div);
+  }
+}
+
+function renderInPlay() {
+  // Player in play (arena bar) — larger cards
+  const ppEl=document.getElementById('player-play-area'); if(!ppEl) return;
+  ppEl.innerHTML='<div class="in-play-label">YOUR IN PLAY:</div>';
+  for(const card of G.playerInPlay){
+    const div=buildCardEl(card,true,true);
+    div.classList.add('in-play-card');
+    if(G.awaitingScrapChoice) {
+      div.style.cursor='pointer';
+      div.addEventListener('click',()=>playerScrapCard(card.id));
+      const scrapBadge=document.createElement('div');
+      scrapBadge.style.cssText='position:absolute;top:0;left:0;right:0;background:rgba(255,68,68,0.85);color:#fff;font-size:0.55rem;text-align:center;padding:2px;font-family:Share Tech Mono,monospace;font-weight:700;letter-spacing:1px;z-index:2;';
+      scrapBadge.textContent='CLICK TO SCRAP';
+      div.appendChild(scrapBadge);
+    } else {
+      div.addEventListener('click',()=>{G.selectedCard=card.id; render();});
+      if(G.selectedCard===card.id) div.classList.add('selected');
+    }
+    ppEl.appendChild(div);
+  }
+
+  // Bot in play (arena bar) — larger cards
+  const bpEl=document.getElementById('bot-play-area'); if(!bpEl) return;
+  bpEl.innerHTML='<div class="in-play-label">BOT IN PLAY:</div>';
+  for(const card of G.botInPlay){
+    const div=buildCardEl(card,false,true);
+    div.classList.add('in-play-card');
+    bpEl.appendChild(div);
+  }
+}
+
+function buildCardEl(card, isPlayer, isInPlay=false) {
+  const div=document.createElement('div');
+  div.className=`card ${card.type}`;
+  div.dataset.id=card.id;
+
+  if(card.type==='weapon') {
+    const speedColor={'fast':'var(--fast)','medium':'var(--medium)','slow':'var(--slow)','charged':'var(--charged)'}[card.speed]||'var(--muted)';
+    const ammoPips=Array.from({length:card.ammo+((card._maxAmmo||card.ammo)-card.ammo)},(_,i)=>`<div class="ammo-pip${i>=card.ammo?' used':''}"></div>`).join('');
+    div.innerHTML=`
+      <div class="card-header">
+        <div class="card-name">${card.icon||'🔫'} ${card.name}</div>
+        <div class="card-type-badge weapon-badge">WEAPON · ${card.subtype.replace('_',' ')}</div>
+      </div>
+      <div class="card-body">
+        <div class="card-stat"><span class="card-stat-label">DMG</span><span class="card-stat-value" style="color:var(--accent2)">${card.damage}</span></div>
+        <div class="card-stat"><span class="card-stat-label">RANGE</span><span class="card-stat-value">${card.range} sp</span></div>
+        <div class="card-stat"><span class="card-stat-label">SPEED</span><span class="card-stat-value" style="color:${speedColor}">${card.speed.toUpperCase()}</span></div>
+        <div class="card-stat"><span class="card-stat-label">AMMO</span><span class="card-stat-value">${card.ammo}</span></div>
+      </div>
+      <div class="card-footer"><div class="ammo-pips">${Array.from({length:Math.min(card.ammo,10)},()=>'<div class="ammo-pip"></div>').join('')}</div></div>
+      <div class="card-bg-icon">${card.icon||'🔫'}</div>
+    `;
+  } else if(card.type==='defense') {
+    const isHeal=card.healAmount>0;
+    div.innerHTML=`
+      <div class="card-header">
+        <div class="card-name">${card.icon||'🛡️'} ${card.name}</div>
+        <div class="card-type-badge defense-badge">DEFENSE · ${card.subtype}</div>
+      </div>
+      <div class="card-body">
+        ${isHeal?`<div class="card-stat"><span class="card-stat-label">HEAL</span><span class="card-stat-value" style="color:var(--green)">+${card.healAmount} HP</span></div>`:`
+        <div class="card-stat"><span class="card-stat-label">DEF</span><span class="card-stat-value" style="color:var(--hero)">${card.defense}</span></div>
+        <div class="card-stat"><span class="card-stat-label">DUR</span><span class="card-stat-value">${card.durability}/${card.maxDurability}</span></div>
+        <div style="font-size:0.5rem;color:var(--muted);margin-top:2px;">vs ${card.effectiveVs.slice(0,2).join(', ')}</div>
+        `}
+      </div>
+      <div class="card-footer">
+        ${isHeal?'<span style="font-size:0.6rem;color:var(--green)">ONE USE</span>':`<div class="durability-bar"><div class="durability-fill" style="width:${(card.durability/card.maxDurability)*100}%"></div></div>`}
+      </div>
+      <div class="card-bg-icon">${card.icon||'🛡️'}</div>
+    `;
+  } else if(card.type==='character') {
+    div.innerHTML=`
+      <div class="card-header">
+        <div class="card-name">${card.icon} ${card.name}</div>
+        <div class="card-type-badge character-badge">CHARACTER · ${card.faction}</div>
+      </div>
+      <div class="card-body">
+        <div class="card-stat"><span class="card-stat-label">HP</span><span class="card-stat-value">${card.hp}/${card.maxHp}</span></div>
+        <div class="card-stat"><span class="card-stat-label">SPD</span><span class="card-stat-value">${card.speed}</span></div>
+        <div style="font-size:0.5rem;color:var(--accent);margin-top:4px;">${card.attrDesc}</div>
+      </div>
+    `;
+  }
+  return div;
+}
+
+function buildHiddenCard() {
+  const div=document.createElement('div');
+  div.className='card hidden-card';
+  div.innerHTML=`<div class="card-hidden-inner"><div class="shield">⚔️</div><span>HIDDEN</span></div>`;
+  return div;
+}
+
+function renderArena() {
+  const el=document.getElementById('arena-grid'); if(!el) return;
+  el.innerHTML='';
+
+  const phase=PHASES[G.phase];
+  const reachable = G.awaitingMove ? getReachable(G.playerPos, G.playerChar.attribute==='swift' ? 2 : 1) : [];
+
+  // Layout:
+  // Row 0: [empty, 6, empty] (up branch 2nd)
+  // Row 1: [empty, 5, empty] (up branch 1st)
+  // Row 2: [0, 1, 2, 3, 4] (spine)
+  // Row 3: [empty, 7, empty] (down branch 1st)
+  // Row 4: [empty, 8, empty] (down branch 2nd)
+
+  const rows = [
+    [null, 6, null],
+    [null, 5, null],
+    [0, 1, 2, 3, 4],
+    [null, 7, null],
+    [null, 8, null],
+  ];
+
+  for(const row of rows) {
+    const rowDiv=document.createElement('div');
+    rowDiv.className='arena-row';
+    for(const idx of row) {
+      if(idx===null){
+        const spacer=document.createElement('div');
+        spacer.className='location-tile empty-slot';
+        rowDiv.appendChild(spacer);
+      } else {
+        const loc=G.locations[idx];
+        const tile=document.createElement('div');
+        tile.className='location-tile';
+        const pHere=G.playerPos===idx;
+        const bHere=G.botPos===idx;
+        if(pHere&&bHere) tile.classList.add('both-here');
+        else if(pHere) tile.classList.add('player-here');
+        else if(bHere) tile.classList.add('bot-here');
+        if(G.awaitingMove && reachable.includes(idx)) tile.classList.add('selectable');
+
+        // Calculate display distance from player
+        const dist=getDistance(G.playerPos,idx);
+
+        tile.innerHTML=`
+          <div class="loc-icons">
+            ${pHere?'<div class="player-token p"></div>':'<div style="width:12px"></div>'}
+            ${bHere?'<div class="player-token b"></div>':'<div style="width:12px"></div>'}
+          </div>
+          <div class="loc-name">${loc.icon} ${loc.name}</div>
+          <div class="loc-effect ${loc.css}">${loc.effectDesc}</div>
+          <div class="loc-dist">${dist>0?dist+'sp':''}</div>
+        `;
+        if(G.awaitingMove) {
+          tile.addEventListener('click',()=>playerMove(idx));
+        }
+        rowDiv.appendChild(tile);
+      }
+    }
+    el.appendChild(rowDiv);
+  }
+}
+
+function renderDeckSizes() {
+  const el=document.getElementById('deck-sizes'); if(!el) return;
+  el.innerHTML=`
+    <div>🔫 Weapon deck: <b>${G.weaponDeck.length}</b></div>
+    <div>🛡️ Defense deck: <b>${G.defenseDeck.length}</b></div>
+    <div>🤖 Bot hand: <b>${G.botHand.length}</b> hidden</div>
+    <div>Bot in play: <b>${G.botInPlay.length}</b> cards</div>
+    <div style="margin-top:8px;color:var(--muted);font-size:0.6rem;">Distance to bot: <b style="color:var(--text)">${getDistance(G.playerPos,G.botPos)} space(s)</b></div>
+  `;
+  // Update player card count label
+  const countEl = document.getElementById('player-card-count');
+  if(countEl) {
+    const total = playerTotalCards();
+    const max = getMaxHandSize(G.playerChar);
+    countEl.textContent = `${total}/${max} cards`;
+    countEl.style.color = total >= max ? 'var(--accent2)' : 'var(--muted)';
+  }
+}
+
+function updatePhaseUI() {
+  const phase=PHASES[G.phase];
+  const badge=document.getElementById('phase-badge');
+  badge.className='phase-badge';
+  badge.classList.add(`phase-${phase}`);
+  badge.textContent=phase.toUpperCase()+' PHASE';
+  document.getElementById('turn-num').textContent=G.turn;
+
+  const skipBtn=document.getElementById('btn-skip');
+  // Disable skip only if already acted or game over. During scrap choice, skip is the "pass" button.
+  skipBtn.disabled = G.playerActedThisPhase || G.gameOver;
+  if(G.awaitingScrapChoice) {
+    skipBtn.textContent = 'PASS SCRAP →';
+  } else if(phase === 'movement') {
+    skipBtn.textContent = 'STAY PUT →';
+  } else {
+    skipBtn.textContent = 'SKIP PHASE →';
+  }
+}
+
+function updateHint() {
+  const el=document.getElementById('action-hint'); if(!el) return;
+  const phase=PHASES[G.phase];
+  if(G.gameOver){el.textContent='Game over.';return;}
+  if(G.awaitingScrapChoice){
+    el.textContent='⚠ SCRAP HEAP: Click a card to discard it, or PASS SCRAP to keep all.';
+    el.style.color='var(--accent2)';
+    return;
+  }
+  el.style.color='var(--muted)';
+  if(G.playerActedThisPhase){
+    el.textContent='Waiting for bot...';
+  } else if(phase==='movement'){
+    const isSwift = G.playerChar.attribute === 'swift';
+    el.textContent=`Move to a highlighted tile (up to ${isSwift?2:1} space${isSwift?'s':''}), or STAY PUT.`;
+  } else {
+    el.textContent=`${phase.toUpperCase()} phase: play a ${phase} weapon, or any defense card. Or skip.`;
+  }
+}
+
+function showHelp() { document.getElementById('help-overlay').classList.remove('hidden'); }
+
+// ============================================================
+//  BOOT
+// ============================================================
+window.onload=()=>{ initGame(); };
+</script>
+</body>
+</html>
