@@ -1506,13 +1506,20 @@ function checkWin() {
   if(G.gameOver) return;
   if(G.playerChar.hp<=0) { endGame('bot'); return; }
   if(G.botChar.hp<=0) { endGame('player'); return; }
+  // Turn limit — highest HP wins on time
+  if(G.turn > 50) {
+    if(G.playerChar.hp > G.botChar.hp)      endGame('player');
+    else if(G.botChar.hp > G.playerChar.hp) endGame('bot');
+    else                                     endGame('draw');
+  }
 }
 
 function endGame(winner) {
   G.gameOver = true;
   const won = winner==='player';
-  document.getElementById('modal-title').textContent = won ? '🏆 VICTORY!' : '💀 DEFEATED';
-  document.getElementById('modal-msg').textContent = won ? `You defeated ${G.botChar.name}!` : `${G.botChar.name} has eliminated you.`;
+  const isDraw = winner==='draw';
+  document.getElementById('modal-title').textContent = won ? '🏆 VICTORY!' : isDraw ? '🤝 DRAW' : '💀 DEFEATED';
+  document.getElementById('modal-msg').textContent = won ? `You defeated ${G.botChar.name}!` : isDraw ? `Time limit reached — equal HP!` : `${G.botChar.name} has eliminated you.`;
   document.getElementById('modal-stats').innerHTML = `
     <div class="modal-stat"><div class="modal-stat-label">Your HP</div><div class="modal-stat-value" style="color:var(--hero)">${G.playerChar.hp}</div></div>
     <div class="modal-stat"><div class="modal-stat-label">Bot HP</div><div class="modal-stat-value" style="color:var(--villain)">${G.botChar.hp}</div></div>
