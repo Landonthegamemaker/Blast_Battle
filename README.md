@@ -82,10 +82,13 @@ python train.py --export-onnx checkpoints/hard/best_model.zip
 ---
 
 ## Files
+
 | File | Description |
 |---|---|
-| `blast-battles.html` | Game with embedded RL agent (no dependencies) |
+| `blast-battles.html` | Game UI (must be served over HTTP for Impossible AI) |
 | `blast_battles_env.py` | Gymnasium environment |
-| `train.py` | PPO training pipeline with curriculum |
+| `train.py` | MaskablePPO training pipeline |
+| `visualize_training.py` | TensorBoard log to matplotlib charts |
 | `requirements.txt` | Python dependencies |
-| `blast_battles_policy.onnx` | Exported model (self-contained) |
+| `blast_battles_policy.onnx` | Exported best model |
+| `blast_battles_selfplay.onnx` | Selfplay "Legendary" model |
