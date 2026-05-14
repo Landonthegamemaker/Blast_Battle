@@ -4,7 +4,7 @@ A weapons-based card game with a trained RL agent that achieves a 50.6% win rate
 
 ## Playing the Game
 
-**Important:** The Impossible AI loads `blast_battles_policy.onnx` via fetch, which requires HTTP.
+**Important:** The Impossible/Legendary AI loads `blast_battles_policy.onnx` via fetch, which requires HTTP.
 Open a terminal in the project folder and run:
 
 ```bash
